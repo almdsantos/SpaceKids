@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, createContext, useContext } from 'react';
 import {
   Animated, Dimensions, StyleSheet, Text,
   TouchableOpacity, View,
@@ -15,6 +15,9 @@ const MESSAGES = [
   '🪐 Próxima parada: Saturno!',
 ];
 
+const RocketContext = createContext(null);
+export const useRocket = () => useContext(RocketContext);
+
 function Rocket({ onDone }) {
   const posX = useRef(new Animated.Value(0)).current;
   const posY = useRef(new Animated.Value(0)).current;
@@ -23,39 +26,58 @@ function Rocket({ onDone }) {
   const [msg] = useState(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
 
   React.useEffect(() => {
-    const startX = Math.random() * SW;
+    // Começa em qualquer borda da tela
+    const side = Math.floor(Math.random() * 4);
+    let startX, startY;
+    if (side === 0)      { startX = Math.random() * SW; startY = SH + 60; }
+    else if (side === 1) { startX = Math.random() * SW; startY = -60; }
+    else if (side === 2) { startX = -60;      startY = Math.random() * SH; }
+    else                 { startX = SW + 60;  startY = Math.random() * SH; }
+
     posX.setValue(startX);
-    posY.setValue(SH + 60);
+    posY.setValue(startY);
 
-    // Gera entre 3 e 6 zigue zagues aleatórios
-    const steps = Math.floor(Math.random() * 4) + 3;
-    const durStep = Math.floor(Math.random() * 400) + 500;
+    // Destino final em qualquer lugar da tela
+    const endX = Math.random() * SW;
+    const endY = Math.random() * SH;
 
-    const zigzags = Array.from({ length: steps }, () => {
+    // Zigue zague no meio do caminho
+    const steps = Math.floor(Math.random() * 4) + 4;
+    const durStep = Math.floor(Math.random() * 600) + 800; // 800ms a 1400ms — devagar!
+
+    const midXs = Array.from({ length: steps - 1 }, () => {
       const direction = Math.random() > 0.5 ? 1 : -1;
-      const amplitude = Math.random() * 150 + 40;
+      const amplitude = Math.random() * 130 + 50;
       return Math.max(20, Math.min(SW - 20, startX + direction * amplitude));
     });
 
+    const midYs = Array.from({ length: steps - 1 }, () => {
+      const direction = Math.random() > 0.5 ? 1 : -1;
+      const amplitude = Math.random() * 100 + 40;
+      return Math.max(20, Math.min(SH - 20, startY + direction * amplitude));
+    });
+
+    const allX = [...midXs, endX];
+    const allY = [...midYs, endY];
+
     Animated.parallel([
       Animated.spring(scale, {
-        toValue: 1.2 + Math.random() * 0.6,
-        useNativeDriver: true,
-        friction: 4,
+        toValue: 1.0 + Math.random() * 0.5,
+        useNativeDriver: true, friction: 5,
       }),
       Animated.sequence(
-        zigzags.map(x =>
+        allX.map(x =>
           Animated.timing(posX, { toValue: x, duration: durStep, useNativeDriver: true })
         )
       ),
-      Animated.timing(posY, {
-        toValue: -80,
-        duration: durStep * steps,
-        useNativeDriver: true,
-      }),
+      Animated.sequence(
+        allY.map(y =>
+          Animated.timing(posY, { toValue: y, duration: durStep, useNativeDriver: true })
+        )
+      ),
       Animated.sequence([
         Animated.delay(durStep * (steps - 1)),
-        Animated.timing(opacity, { toValue: 0, duration: durStep, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 800, useNativeDriver: true }),
       ]),
     ]).start(onDone);
   }, []);
@@ -74,7 +96,7 @@ function Rocket({ onDone }) {
   );
 }
 
-export default function RocketEasterEgg({ children }) {
+export function RocketProvider({ children }) {
   const [rockets, setRockets] = useState([]);
   const counter = useRef(0);
 
@@ -88,14 +110,23 @@ export default function RocketEasterEgg({ children }) {
   }, []);
 
   return (
-    <>
-      <TouchableOpacity onPress={launch} activeOpacity={0.7}>
+    <RocketContext.Provider value={{ launch }}>
+      <View style={{ flex: 1 }}>
         {children}
-      </TouchableOpacity>
-      {rockets.map(id => (
-        <Rocket key={id} onDone={() => removeRocket(id)} />
-      ))}
-    </>
+        {rockets.map(id => (
+          <Rocket key={id} onDone={() => removeRocket(id)} />
+        ))}
+      </View>
+    </RocketContext.Provider>
+  );
+}
+
+export default function RocketEasterEgg({ children }) {
+  const { launch } = useRocket();
+  return (
+    <TouchableOpacity onPress={launch} activeOpacity={0.7}>
+      {children}
+    </TouchableOpacity>
   );
 }
 
@@ -103,11 +134,10 @@ const styles = StyleSheet.create({
   rocket: {
     position: 'absolute',
     zIndex: 9999,
+    elevation: 9999,
     alignItems: 'center',
   },
-  rocketEmoji: {
-    fontSize: 36,
-  },
+  rocketEmoji: { fontSize: 36 },
   msg: {
     position: 'absolute',
     top: -24,

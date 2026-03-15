@@ -1,20 +1,23 @@
 export const colors = {
-  bg: '#050d1a',
-  bgCard: '#0d1f35',
-  bgSection: '#081628',
-  bgHeader: '#06101f',
+  bg: '#030b18',
+  bgCard: '#0a1a2e',
+  bgSection: '#071422',
+  bgHeader: '#040d1c',
   neonGreen: '#00ff88',
-  neonGreenDim: 'rgba(0,255,136,0.25)',
-  neonGreenGlow: 'rgba(0,255,136,0.08)',
+  neonGreenDim: 'rgba(0,255,136,0.2)',
+  neonGreenGlow: 'rgba(0,255,136,0.06)',
   purple: '#7c3aed',
-  purpleDim: 'rgba(124,58,237,0.35)',
+  purpleDim: 'rgba(124,58,237,0.3)',
+  purpleGlow: 'rgba(124,58,237,0.15)',
   gold: '#ffd700',
+  goldDim: 'rgba(255,215,0,0.2)',
   white: '#ffffff',
-  textMuted: '#5a7080',
-  textSecondary: '#8fa8bc',
-  border: 'rgba(0,255,136,0.2)',
-  borderBright: 'rgba(0,255,136,0.6)',
-  overlay: 'rgba(5,13,26,0.85)',
+  textMuted: '#4a6070',
+  textSecondary: '#7a98b0',
+  border: 'rgba(0,255,136,0.15)',
+  borderBright: 'rgba(0,255,136,0.5)',
+  borderCard: 'rgba(0,255,136,0.25)',
+  overlay: 'rgba(3,11,24,0.92)',
 };
 
 export const spacing = {
@@ -27,7 +30,31 @@ export const spacing = {
 
 export const radius = {
   sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  md: 14,
+  lg: 20,
+  xl: 28,
+};
+
+export const glow = {
+  green: {
+    shadowColor: '#00ff88',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 10,
+    shadowOpacity: 0.6,
+    elevation: 8,
+  },
+  purple: {
+    shadowColor: '#7c3aed',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 10,
+    shadowOpacity: 0.6,
+    elevation: 8,
+  },
+  gold: {
+    shadowColor: '#ffd700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 8,
+    shadowOpacity: 0.5,
+    elevation: 6,
+  },
 };

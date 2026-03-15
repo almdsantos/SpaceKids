@@ -9,7 +9,10 @@ export default function SectionRow({ title, data = [], onPress, variant = 'media
   return (
     <View style={styles.section}>
       <View style={styles.titleRow}>
-        <View style={styles.titleAccent} />
+        <View style={styles.titleAccentWrap}>
+          <View style={styles.titleAccent} />
+          <View style={styles.titleAccentGlow} />
+        </View>
         <Text style={styles.title}>{title}</Text>
       </View>
       <FlatList
@@ -27,21 +30,48 @@ export default function SectionRow({ title, data = [], onPress, variant = 'media
 }
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 20 },
+  section: {
+    marginBottom: 24,
+  },
   titleRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: spacing.md, marginBottom: 10, gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    marginBottom: 12,
+    gap: 10,
+  },
+  titleAccentWrap: {
+    position: 'relative',
+    width: 4,
+    height: 20,
   },
   titleAccent: {
-    width: 4, height: 18, backgroundColor: colors.neonGreen,
-    borderRadius: 2, shadowColor: colors.neonGreen,
-    shadowRadius: 6, shadowOpacity: 0.9,
+    width: 4,
+    height: 20,
+    backgroundColor: colors.neonGreen,
+    borderRadius: 2,
+  },
+  titleAccentGlow: {
+    position: 'absolute',
+    top: 0, left: -3,
+    width: 10,
+    height: 20,
+    backgroundColor: colors.neonGreen,
+    borderRadius: 5,
+    opacity: 0.25,
   },
   title: {
-    color: colors.neonGreen, fontSize: 16, fontWeight: '900',
-    letterSpacing: 1, textTransform: 'uppercase',
-    textShadowColor: 'rgba(0,255,136,0.4)',
-    textShadowRadius: 8, textShadowOffset: { width: 0, height: 0 },
+    color: colors.neonGreen,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(0,255,136,0.5)',
+    textShadowRadius: 10,
+    textShadowOffset: { width: 0, height: 0 },
   },
-  list: { paddingLeft: spacing.md, paddingRight: spacing.sm },
+  list: {
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
+  },
 });

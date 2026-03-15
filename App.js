@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet } from 'react-native';
 
 import { FavoritesProvider } from './src/context/FavoritesContext';
+import { RocketProvider } from './src/components/RocketEasterEgg';
 import { colors } from './src/theme';
 
 import HomeScreen         from './src/screens/HomeScreen';
@@ -22,6 +23,14 @@ import GamePlayerScreen   from './src/screens/GamePlayerScreen';
 
 const Stack = createStackNavigator();
 const Tab   = createBottomTabNavigator();
+
+function TabIcon({ name, focused, color }) {
+  return (
+    <View style={[styles.tabIconWrap, focused && styles.tabIconActive]}>
+      <Ionicons name={name} size={22} color={color} />
+    </View>
+  );
+}
 
 function TabNavigator() {
   return (
@@ -38,11 +47,7 @@ function TabNavigator() {
             SearchTab:    focused ? 'search'   : 'search-outline',
             FavoritesTab: focused ? 'bookmark' : 'bookmark-outline',
           };
-          return (
-            <View style={focused ? styles.tabIconActive : null}>
-              <Ionicons name={icons[route.name]} size={22} color={color} />
-            </View>
-          );
+          return <TabIcon name={icons[route.name]} focused={focused} color={color} />;
         },
       })}
     >
@@ -58,22 +63,24 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <FavoritesProvider>
-          <NavigationContainer>
-            <StatusBar style="light" />
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="Main"         component={TabNavigator} />
-              <Stack.Screen name="MovieDetail"  component={MovieDetailScreen}
-                options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="SeriesDetail" component={SeriesDetailScreen}
-                options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="GamesScreen"  component={GamesScreen}
-                options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="Player"       component={PlayerScreen}
-                options={{ animation: 'slide_from_bottom' }} />
-              <Stack.Screen name="GamePlayer"   component={GamePlayerScreen}
-                options={{ animation: 'slide_from_bottom' }} />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <RocketProvider>
+            <NavigationContainer>
+              <StatusBar style="light" />
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Main"         component={TabNavigator} />
+                <Stack.Screen name="MovieDetail"  component={MovieDetailScreen}
+                  options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="SeriesDetail" component={SeriesDetailScreen}
+                  options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="GamesScreen"  component={GamesScreen}
+                  options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="Player"       component={PlayerScreen}
+                  options={{ animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="GamePlayer"   component={GamePlayerScreen}
+                  options={{ animation: 'slide_from_bottom' }} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </RocketProvider>
         </FavoritesProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -84,21 +91,30 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.bgHeader,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    height: 60,
-    paddingBottom: 6,
-    paddingTop: 4,
+    borderTopColor: colors.borderCard,
+    height: 62,
+    paddingBottom: 8,
+    paddingTop: 6,
+    shadowColor: colors.neonGreen,
+    shadowRadius: 12,
+    shadowOpacity: 0.15,
+    elevation: 20,
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
+  },
+  tabIconWrap: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
   },
   tabIconActive: {
     backgroundColor: colors.neonGreenDim,
-    borderRadius: 12,
-    padding: 4,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: colors.neonGreen,
+    shadowRadius: 8,
+    shadowOpacity: 0.4,
   },
 });
