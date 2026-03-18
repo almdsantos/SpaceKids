@@ -9,11 +9,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { colors, spacing, radius } from '../theme';
 import { useContent } from '../hooks/useContent';
+import { useFavorites } from '../context/FavoritesContext';
 import StarBackground from '../components/StarBackground';
 import SectionRow from '../components/SectionRow';
 
 export default function GamesScreen({ navigation }) {
   const { data, loading } = useContent();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const games = data?.games;
 
   function handleGamePress(game) {
@@ -58,6 +60,19 @@ export default function GamesScreen({ navigation }) {
                 <View style={styles.heroBadge}>
                   <Text style={styles.heroBadgeText}>🔥 MAIS JOGADO</Text>
                 </View>
+
+                {/* Botão favoritar */}
+                <TouchableOpacity
+                  style={styles.heroFavBtn}
+                  onPress={() => toggleFavorite({ ...games.featured, type: 'game' })}
+                >
+                  <Ionicons
+                    name={isFavorite(games.featured.id) ? 'bookmark' : 'bookmark-outline'}
+                    size={20}
+                    color={isFavorite(games.featured.id) ? colors.gold : colors.neonGreen}
+                  />
+                </TouchableOpacity>
+
                 <View style={styles.heroContent}>
                   <Text style={styles.heroTitle}>{games.featured.title}</Text>
                   <Text style={styles.heroDesc} numberOfLines={2}>{games.featured.description}</Text>
@@ -111,6 +126,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3, borderRadius: 20,
   },
   heroBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+  heroFavBtn: {
+    position: 'absolute', top: 10, right: 10,
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1.5, borderColor: colors.borderCard,
+    alignItems: 'center', justifyContent: 'center',
+  },
   heroContent: { position: 'absolute', bottom: 14, left: 14, right: 14 },
   heroTitle: { color: colors.gold, fontSize: 20, fontWeight: '900', marginBottom: 4 },
   heroDesc: { color: colors.textSecondary, fontSize: 11, marginBottom: 10 },

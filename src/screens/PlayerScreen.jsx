@@ -1,123 +1,205 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator,
+  ActivityIndicator, StatusBar, Dimensions, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { WebView } from 'react-native-webview';
-import { colors, spacing } from '../theme';
+import YoutubeIframe from 'react-native-youtube-iframe';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
+import { colors } from '../theme';
 
-function buildPlayer(youtubeId) {
+function useScreenDimensions() {
+  const [dims, setDims] = useState(Dimensions.get('window'));
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => setDims(window));
+    return () => sub?.remove();
+  }, []);
+  return dims;
+}
+
+// CSS injetado para esconder elementos do YouTube
+function getHideElementsJS() {
   return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#000; width:100vw; height:100vh; overflow:hidden; }
-  iframe { width:100%; height:100%; border:none; }
-</style>
-</head>
-<body>
-<iframe
-  src="https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1"
-  allow="autoplay; fullscreen; encrypted-media"
-  allowfullscreen>
-</iframe>
-</body>
-</html>
+    (function() {
+      var style = document.createElement('style');
+      style.innerHTML = \`
+        .ytp-chrome-top,
+        .ytp-show-cards-title,
+        .ytp-cards-button,
+        .ytp-cards-teaser,
+        .ytp-ce-element,
+        .ytp-endscreen-element,
+        .ytp-pause-overlay,
+        .ytp-watermark,
+        .ytp-youtube-button,
+        .ytp-fullscreen-button,
+        .ytp-share-button,
+        .branding-img,
+        .ytp-impression-link,
+        .iv-branding,
+        .ytp-cards-button-arrow,
+        .annotation { 
+          display: none !important; 
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      \`;
+      document.head.appendChild(style);
+
+      var iframe = document.querySelector('iframe');
+      if (iframe) {
+        var requestFS = iframe.requestFullscreen 
+          || iframe.webkitRequestFullscreen 
+          || iframe.mozRequestFullScreen;
+        if (requestFS) requestFS.call(iframe);
+      }
+    })();
+    true;
   `;
 }
 
 export default function PlayerScreen({ route, navigation }) {
   const { youtubeId, title } = route.params;
   const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const playerRef = useRef(null);
+
+  const { width, height } = useScreenDimensions();
+  const screenW = Math.max(width, height);
+  const screenH = Math.min(width, height);
+
+  useEffect(() => {
+    StatusBar.setHidden(true);
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+    }
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+    return () => {
+      StatusBar.setHidden(false);
+      if (Platform.OS === 'android') {
+        NavigationBar.setVisibilityAsync('visible');
+      }
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    };
+  }, []);
+
+  function onReady() {
+    setReady(true);
+    setPlaying(true);
+    setTimeout(() => {
+      playerRef.current?.injectJavaScript(getHideElementsJS());
+    }, 800);
+  }
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.wrapper}>
+      <StatusBar hidden />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color={colors.neonGreen} />
-          </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <View style={{ width: 38 }} />
-        </View>
+      <View style={[styles.container, { width: screenW, height: screenH }]}>
 
         {/* Player */}
-        <View style={styles.playerWrap}>
-          {!ready && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={colors.neonGreen} />
-              <Text style={styles.loadingText}>🚀 Preparando...</Text>
-            </View>
-          )}
-          <WebView
-            source={{ html: buildPlayer(youtubeId) }}
-            style={styles.webview}
-            onLoadEnd={() => setReady(true)}
-            allowsFullscreenVideo
-            javaScriptEnabled
-            domStorageEnabled
-            mediaPlaybackRequiresUserAction={false}
-            allowsInlineMediaPlayback
-            mixedContentMode="always"
+        <View
+          style={[styles.playerContainer, { width: screenW, height: screenH }]}
+          pointerEvents="box-none"
+        >
+          <YoutubeIframe
+            ref={playerRef}
+            height={screenH}
+            width={screenW}
+            videoId={youtubeId}
+            play={playing}
+            forceAndroidAutoplay={true}
+            onReady={onReady}
+            onChangeState={(state) => {
+              if (state === 'ended') setPlaying(false);
+            }}
+            initialPlayerParams={{
+              modestbranding: 1,
+              rel: 0,
+              controls: 1,
+              showinfo: 0,
+              iv_load_policy: 3,  // esconde anotações
+              cc_load_policy: 0,
+              preventFullScreen: false,
+              autoplay: 1,
+            }}
+            webViewStyle={{
+              backgroundColor: '#000',
+              width: screenW,
+              height: screenH,
+            }}
+            webViewProps={{
+              allowsFullscreenVideo: true,
+              mediaPlaybackRequiresUserAction: false,
+              allowsInlineMediaPlayback: false,
+              scrollEnabled: false,
+              bounces: false,
+              overScrollMode: 'never',
+              style: {
+                width: screenW,
+                height: screenH,
+                backgroundColor: '#000',
+              },
+            }}
           />
         </View>
 
-        {/* Fun area */}
-        <View style={styles.funArea}>
-          <Text style={styles.funEmoji}>🌟</Text>
-          <Text style={styles.funText}>Aproveite a aventura espacial!</Text>
-          <Text style={styles.funTitle} numberOfLines={2}>{title}</Text>
-        </View>
+        {/* Botão voltar */}
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.neonGreen} />
+        </TouchableOpacity>
 
-      </SafeAreaView>
+        {/* Loading */}
+        {!ready && (
+          <View style={[styles.loadingOverlay, { width: screenW, height: screenH }]}>
+            <ActivityIndicator size="large" color={colors.neonGreen} />
+            <Text style={styles.loadingText}>🚀 Preparando...</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  safe: { flex: 1 },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: spacing.md, paddingVertical: 10,
-    backgroundColor: colors.bgHeader,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+  wrapper: {
+    flex: 1,
+    backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  container: {
+    backgroundColor: '#000',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  playerContainer: {
+    position: 'absolute',
+    top: 0, left: 0,
+    overflow: 'hidden',
+    backgroundColor: '#000',
   },
   backBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.bgCard, borderWidth: 1.5,
-    borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    top: 12, left: 12,
+    zIndex: 999,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1.5, borderColor: 'rgba(0,255,136,0.4)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  title: {
-    flex: 1, color: colors.white, fontSize: 14,
-    fontWeight: '800', textAlign: 'center', paddingHorizontal: 8,
-  },
-  playerWrap: {
-    width: '100%', height: 280,
-    backgroundColor: '#000', position: 'relative',
-  },
-  webview: { flex: 1, backgroundColor: '#000' },
   loadingOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: colors.bg, alignItems: 'center',
-    justifyContent: 'center', zIndex: 10, gap: 12,
+    position: 'absolute',
+    top: 0, left: 0,
+    backgroundColor: '#000',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 10, gap: 12,
   },
-  loadingText: { color: colors.textSecondary, fontSize: 13 },
-  funArea: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.bg, gap: 8, paddingHorizontal: spacing.lg,
-  },
-  funEmoji: { fontSize: 40 },
-  funText: { color: colors.textMuted, fontSize: 13 },
-  funTitle: {
-    color: colors.white, fontSize: 16, fontWeight: '900',
-    textAlign: 'center',
-  },
+  loadingText: { color: '#8fa8bc', fontSize: 13 },
 });

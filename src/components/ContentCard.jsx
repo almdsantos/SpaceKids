@@ -1,9 +1,14 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, glow } from '../theme';
+import { useFavorites } from '../context/FavoritesContext';
 
 export default function ContentCard({ item, onPress, variant = 'media', style }) {
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const favorited = isFavorite(item.id);
+
   if (variant === 'game') {
     return (
       <TouchableOpacity
@@ -21,6 +26,17 @@ export default function ContentCard({ item, onPress, variant = 'media', style })
             <Text style={styles.playIcon}>▶</Text>
           </View>
         </View>
+        {/* Botão favoritar */}
+        <TouchableOpacity
+          style={styles.favBtn}
+          onPress={() => toggleFavorite({ ...item, type: 'game' })}
+        >
+          <Ionicons
+            name={favorited ? 'bookmark' : 'bookmark-outline'}
+            size={14}
+            color={favorited ? colors.gold : colors.neonGreen}
+          />
+        </TouchableOpacity>
         <View style={styles.gameInfo}>
           <Text style={styles.gameTitle} numberOfLines={2}>{item.title}</Text>
         </View>
@@ -115,5 +131,12 @@ const styles = StyleSheet.create({
   playIcon: {
     color: '#030b18', fontSize: 9,
     fontWeight: '900', marginLeft: 2,
+  },
+  favBtn: {
+    position: 'absolute', top: 6, left: 6,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1, borderColor: colors.borderCard,
+    alignItems: 'center', justifyContent: 'center',
   },
 });
