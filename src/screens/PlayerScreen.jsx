@@ -18,47 +18,6 @@ function useScreenDimensions() {
   return dims;
 }
 
-// CSS injetado para esconder elementos do YouTube
-function getHideElementsJS() {
-  return `
-    (function() {
-      var style = document.createElement('style');
-      style.innerHTML = \`
-        .ytp-chrome-top,
-        .ytp-show-cards-title,
-        .ytp-cards-button,
-        .ytp-cards-teaser,
-        .ytp-ce-element,
-        .ytp-endscreen-element,
-        .ytp-pause-overlay,
-        .ytp-watermark,
-        .ytp-youtube-button,
-        .ytp-fullscreen-button,
-        .ytp-share-button,
-        .branding-img,
-        .ytp-impression-link,
-        .iv-branding,
-        .ytp-cards-button-arrow,
-        .annotation { 
-          display: none !important; 
-          opacity: 0 !important;
-          pointer-events: none !important;
-        }
-      \`;
-      document.head.appendChild(style);
-
-      var iframe = document.querySelector('iframe');
-      if (iframe) {
-        var requestFS = iframe.requestFullscreen 
-          || iframe.webkitRequestFullscreen 
-          || iframe.mozRequestFullScreen;
-        if (requestFS) requestFS.call(iframe);
-      }
-    })();
-    true;
-  `;
-}
-
 export default function PlayerScreen({ route, navigation }) {
   const { youtubeId, title } = route.params;
   const [ready, setReady] = useState(false);
@@ -89,22 +48,14 @@ export default function PlayerScreen({ route, navigation }) {
   function onReady() {
     setReady(true);
     setPlaying(true);
-    setTimeout(() => {
-      playerRef.current?.injectJavaScript(getHideElementsJS());
-    }, 800);
   }
 
   return (
     <View style={styles.wrapper}>
       <StatusBar hidden />
-
       <View style={[styles.container, { width: screenW, height: screenH }]}>
 
-        {/* Player */}
-        <View
-          style={[styles.playerContainer, { width: screenW, height: screenH }]}
-          pointerEvents="box-none"
-        >
+        <View style={[styles.playerContainer, { width: screenW, height: screenH }]}>
           <YoutubeIframe
             ref={playerRef}
             height={screenH}
@@ -121,7 +72,7 @@ export default function PlayerScreen({ route, navigation }) {
               rel: 0,
               controls: 1,
               showinfo: 0,
-              iv_load_policy: 3,  // esconde anotações
+              iv_load_policy: 3,
               cc_load_policy: 0,
               preventFullScreen: false,
               autoplay: 1,
@@ -147,7 +98,6 @@ export default function PlayerScreen({ route, navigation }) {
           />
         </View>
 
-        {/* Botão voltar */}
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
@@ -155,7 +105,6 @@ export default function PlayerScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.neonGreen} />
         </TouchableOpacity>
 
-        {/* Loading */}
         {!ready && (
           <View style={[styles.loadingOverlay, { width: screenW, height: screenH }]}>
             <ActivityIndicator size="large" color={colors.neonGreen} />

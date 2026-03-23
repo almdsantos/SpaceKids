@@ -84,15 +84,6 @@ export default function MovieDetailScreen({ route, navigation }) {
             <Text style={styles.title}>{movie.title}</Text>
             <Stars count={movie.rating} />
             <Text style={styles.description}>{movie.description}</Text>
-            <TouchableOpacity
-              style={styles.playBtn}
-              onPress={() => navigation.navigate('Player', {
-                youtubeId: movie.youtubeId,
-                title: movie.title,
-              })}
-            >
-              <Text style={styles.playBtnText}>▶  ASSISTIR FILME</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Recomendados */}
@@ -142,8 +133,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
   },
   heroCard: {
-    height: 220, margin: spacing.md, borderRadius: radius.lg,
-    overflow: 'hidden', borderWidth: 1.5, borderColor: colors.borderBright,
+    height: 220, borderRadius: 0,
+    overflow: 'hidden', borderBottomWidth: 1.5, borderColor: colors.borderBright,
     alignItems: 'center', justifyContent: 'center',
   },
   heroImage: { width: '100%', height: '100%', position: 'absolute' },
@@ -161,12 +152,6 @@ const styles = StyleSheet.create({
   info: { paddingHorizontal: spacing.md, paddingBottom: 20, gap: 10 },
   title: { color: colors.white, fontSize: 24, fontWeight: '900' },
   description: { color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
-  playBtn: {
-    backgroundColor: colors.neonGreen, paddingVertical: 14,
-    borderRadius: 30, alignItems: 'center', marginTop: 4,
-  },
-  playBtnText: { color: '#050d1a', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
-  section: { marginBottom: 16 },
   sectionTitleRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: spacing.md, marginBottom: 10, gap: 8,

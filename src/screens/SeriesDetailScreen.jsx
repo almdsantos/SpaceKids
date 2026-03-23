@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
   },
   heroCard: {
-    height: 200, margin: spacing.md, borderRadius: radius.lg,
-    overflow: 'hidden', borderWidth: 1.5, borderColor: colors.borderBright,
+    height: 200, borderRadius: 0,
+    overflow: 'hidden', borderBottomWidth: 1.5, borderColor: colors.borderBright,
   },
   heroImage: { width: '100%', height: '100%', position: 'absolute' },
   heroContent: { position: 'absolute', bottom: 14, left: 14, right: 14, gap: 6 },
