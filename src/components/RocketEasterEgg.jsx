@@ -1,121 +1,139 @@
 import React, { useRef, useState, useCallback, createContext, useContext } from 'react';
-import {
-  Animated, Dimensions, StyleSheet, Text,
-  TouchableOpacity, View,
-} from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View, Image, Modal, Easing, Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors } from '../theme'; // Importação direta como está no seu arquivo
+import { useContent } from '../hooks/useContent';
+import { useNavigation } from '@react-navigation/native';
 
 const { width: SW, height: SH } = Dimensions.get('window');
-
-const MESSAGES = [
-  '🚀 Wheeeee!',
-  '🌟 Rumo às estrelas!',
-  '👨‍🚀 Houston, aqui vamos nós!',
-  '🛸 3... 2... 1... Decolar!',
-  '💫 Velocidade warp!',
-  '🪐 Próxima parada: Saturno!',
-];
-
 const RocketContext = createContext(null);
 export const useRocket = () => useContext(RocketContext);
 
-function Rocket({ onDone }) {
-  const posX = useRef(new Animated.Value(0)).current;
-  const posY = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(1)).current;
-  const [msg] = useState(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
-
-  React.useEffect(() => {
-    // Começa em qualquer borda da tela
-    const side = Math.floor(Math.random() * 4);
-    let startX, startY;
-    if (side === 0)      { startX = Math.random() * SW; startY = SH + 60; }
-    else if (side === 1) { startX = Math.random() * SW; startY = -60; }
-    else if (side === 2) { startX = -60;      startY = Math.random() * SH; }
-    else                 { startX = SW + 60;  startY = Math.random() * SH; }
-
-    posX.setValue(startX);
-    posY.setValue(startY);
-
-    // Destino final em qualquer lugar da tela
-    const endX = Math.random() * SW;
-    const endY = Math.random() * SH;
-
-    // Zigue zague no meio do caminho
-    const steps = Math.floor(Math.random() * 4) + 4;
-    const durStep = Math.floor(Math.random() * 600) + 800; // 800ms a 1400ms — devagar!
-
-    const midXs = Array.from({ length: steps - 1 }, () => {
-      const direction = Math.random() > 0.5 ? 1 : -1;
-      const amplitude = Math.random() * 130 + 50;
-      return Math.max(20, Math.min(SW - 20, startX + direction * amplitude));
-    });
-
-    const midYs = Array.from({ length: steps - 1 }, () => {
-      const direction = Math.random() > 0.5 ? 1 : -1;
-      const amplitude = Math.random() * 100 + 40;
-      return Math.max(20, Math.min(SH - 20, startY + direction * amplitude));
-    });
-
-    const allX = [...midXs, endX];
-    const allY = [...midYs, endY];
-
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1.0 + Math.random() * 0.5,
-        useNativeDriver: true, friction: 5,
-      }),
-      Animated.sequence(
-        allX.map(x =>
-          Animated.timing(posX, { toValue: x, duration: durStep, useNativeDriver: true })
-        )
-      ),
-      Animated.sequence(
-        allY.map(y =>
-          Animated.timing(posY, { toValue: y, duration: durStep, useNativeDriver: true })
-        )
-      ),
-      Animated.sequence([
-        Animated.delay(durStep * (steps - 1)),
-        Animated.timing(opacity, { toValue: 0, duration: 800, useNativeDriver: true }),
-      ]),
-    ]).start(onDone);
-  }, []);
-
-  return (
-    <Animated.View
-      style={[
-        styles.rocket,
-        { transform: [{ translateX: posX }, { translateY: posY }, { scale }], opacity },
-      ]}
-      pointerEvents="none"
-    >
-      <Text style={styles.rocketEmoji}>🚀</Text>
-      <Text style={styles.msg}>{msg}</Text>
-    </Animated.View>
-  );
-}
-
 export function RocketProvider({ children }) {
-  const [rockets, setRockets] = useState([]);
-  const counter = useRef(0);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [randomContent, setRandomContent] = useState(null);
+  const { data } = useContent();
+  const navigation = useNavigation();
+
+  const rocketY = useRef(new Animated.Value(SH)).current;
+  const rocketX = useRef(new Animated.Value(0)).current;
+  const rocketRotate = useRef(new Animated.Value(0)).current;
+  const rocketScale = useRef(new Animated.Value(1)).current;
+  const thumbScale = useRef(new Animated.Value(0)).current;
+  const thumbOpacity = useRef(new Animated.Value(0)).current;
 
   const launch = useCallback(() => {
-    const id = ++counter.current;
-    setRockets(prev => [...prev, id]);
-  }, []);
+    if (isLaunching || !!randomContent) return;
+    const allItems = [
+      ...(data?.movies || []), 
+      ...(data?.series || []), 
+      ...(data?.games?.educational || []), 
+      ...(data?.games?.puzzle || []), 
+      ...(data?.games?.arcade || [])
+    ];
+    if (allItems.length === 0) return;
 
-  const removeRocket = useCallback((id) => {
-    setRockets(prev => prev.filter(r => r !== id));
-  }, []);
+    const chosen = allItems[Math.floor(Math.random() * allItems.length)];
+    setIsLaunching(true);
+    setRandomContent(chosen);
+    
+    rocketY.setValue(SH * 0.8); 
+    rocketX.setValue(0);
+    rocketRotate.setValue(0);
+    rocketScale.setValue(1);
+
+    Animated.parallel([
+      Animated.timing(rocketY, {
+        toValue: -SH * 0.2,
+        duration: 2000,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(rocketX, { toValue: SW / 2 + 50, duration: 500, useNativeDriver: true }),
+        Animated.timing(rocketX, { toValue: SW / 2 - 110, duration: 600, useNativeDriver: true }),
+        Animated.timing(rocketX, { toValue: SW / 2 - 30, duration: 900, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(rocketRotate, { toValue: 15, duration: 500, useNativeDriver: true }),
+        Animated.timing(rocketRotate, { toValue: -15, duration: 600, useNativeDriver: true }),
+        Animated.timing(rocketRotate, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
+    ]).start(() => {
+      Animated.timing(rocketScale, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setIsLaunching(false);
+        triggerExplosion();
+      });
+    });
+  }, [isLaunching, randomContent, data]);
+
+  const triggerExplosion = () => {
+    thumbScale.setValue(0);
+    thumbOpacity.setValue(0);
+    Animated.parallel([
+      Animated.timing(thumbScale, { toValue: 1, duration: 500, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
+      Animated.timing(thumbOpacity, { toValue: 1, duration: 300, useNativeDriver: true })
+    ]).start();
+  };
+
+  const isGame = randomContent?.category || randomContent?.type === 'game';
+  const buttonText = isGame ? 'JOGAR AGORA! 🎮' : 'ASSISTIR AGORA! 🎬';
+
+  const spin = rocketRotate.interpolate({
+    inputRange: [-15, 15],
+    outputRange: ['-15deg', '15deg']
+  });
 
   return (
     <RocketContext.Provider value={{ launch }}>
       <View style={{ flex: 1 }}>
         {children}
-        {rockets.map(id => (
-          <Rocket key={id} onDone={() => removeRocket(id)} />
-        ))}
+        <Modal transparent visible={isLaunching || !!randomContent} animationType="none">
+          <View style={styles.modalContainer}>
+            {isLaunching && (
+              <Animated.View 
+                style={[
+                  styles.rocket, 
+                  { 
+                    transform: [
+                      { translateY: rocketY }, 
+                      { translateX: rocketX },
+                      { rotate: spin },
+                      { scale: rocketScale }
+                    ] 
+                  }
+                ]}
+              >
+                <MaterialCommunityIcons 
+                  name="rocket-launch" 
+                  size={80} 
+                  color={colors.white} 
+                  style={styles.rocketGlow}
+                />
+              </Animated.View>
+            )}
+            {randomContent && !isLaunching && (
+              <Animated.View style={[styles.explosionBox, { opacity: thumbOpacity, transform: [{ scale: thumbScale }] }]}>
+                <Image source={{ uri: randomContent.thumbnail }} style={styles.thumb} resizeMode="cover" />
+                <Text style={styles.titleText}>{randomContent.title}</Text>
+                <TouchableOpacity 
+                  style={styles.playBtn} 
+                  onPress={() => { 
+                    const routeName = isGame ? 'GamePlayer' : (randomContent.type === 'movie' ? 'MovieDetail' : 'SeriesDetail');
+                    const params = isGame ? { game: randomContent } : (randomContent.type === 'movie' ? { movie: randomContent } : { series: randomContent });
+                    navigation.navigate(routeName, params); 
+                    setRandomContent(null); 
+                  }}
+                >
+                  <Text style={styles.playText}>{buttonText}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => setRandomContent(null)}>
+                  <MaterialCommunityIcons name="close-circle" size={40} color={colors.white} />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
+        </Modal>
       </View>
     </RocketContext.Provider>
   );
@@ -123,31 +141,39 @@ export function RocketProvider({ children }) {
 
 export default function RocketEasterEgg({ children }) {
   const { launch } = useRocket();
-  return (
-    <TouchableOpacity onPress={launch} activeOpacity={0.7}>
-      {children}
-    </TouchableOpacity>
-  );
+  return <TouchableOpacity onPress={launch} activeOpacity={0.7}>{children}</TouchableOpacity>;
 }
 
 const styles = StyleSheet.create({
-  rocket: {
-    position: 'absolute',
-    zIndex: 9999,
-    elevation: 9999,
-    alignItems: 'center',
+  modalContainer: { flex: 1, backgroundColor: 'rgba(3, 11, 24, 0.9)', justifyContent: 'center', alignItems: 'center' },
+  rocket: { position: 'absolute', alignItems: 'center' },
+  rocketGlow: {
+    shadowColor: colors.neonGreen,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    // Para Android:
+    textShadowColor: colors.neonGreen,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
   },
-  rocketEmoji: { fontSize: 36 },
-  msg: {
-    position: 'absolute',
-    top: -24,
-    color: '#ffd700',
-    fontSize: 12,
-    fontWeight: '800',
-    width: 140,
-    textAlign: 'center',
-    textShadowColor: '#000',
-    textShadowRadius: 4,
-    textShadowOffset: { width: 0, height: 1 },
+  explosionBox: { 
+    width: '85%', 
+    backgroundColor: colors.bgCard, 
+    borderRadius: 20, 
+    padding: 20, 
+    alignItems: 'center', 
+    borderWidth: 2, 
+    borderColor: colors.neonGreen, 
+    shadowColor: colors.neonGreen,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 20,
   },
+  thumb: { width: '100%', height: 180, borderRadius: 10, marginBottom: 15 },
+  titleText: { color: colors.white, fontSize: 20, fontWeight: '900', textAlign: 'center', marginBottom: 20 },
+  playBtn: { backgroundColor: colors.neonGreen, paddingHorizontal: 30, paddingVertical: 12, borderRadius: 25 },
+  playText: { color: colors.bg, fontWeight: 'bold' },
+  closeBtn: { position: 'absolute', top: -15, right: -15, backgroundColor: colors.bg, borderRadius: 20 }
 });

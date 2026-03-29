@@ -68,8 +68,8 @@ export default function MovieDetailScreen({ route, navigation }) {
             <TouchableOpacity
               style={styles.playCircle}
               onPress={() => navigation.navigate('Player', {
-                youtubeId: movie.youtubeId,
-                title: movie.title,
+                episodes: [{ youtubeId: movie.youtubeId, title: movie.title }],
+                initialIndex: 0,
               })}
             >
               <Ionicons name="play" size={32} color={colors.bg} />

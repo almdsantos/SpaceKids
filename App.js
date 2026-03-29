@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform, View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -6,7 +7,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
 
 import { FavoritesProvider } from './src/context/FavoritesContext';
 import { RocketProvider } from './src/components/RocketEasterEgg';
@@ -37,7 +37,13 @@ function TabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: Platform.OS === 'android' ? 70 : 88,
+            paddingBottom: Platform.OS === 'android' ? 12 : 30,
+          }
+        ],
         tabBarActiveTintColor: colors.neonGreen,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: styles.tabLabel,
@@ -63,24 +69,19 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <FavoritesProvider>
-          <RocketProvider>
-            <NavigationContainer>
+          <NavigationContainer>
+            <RocketProvider>
               <StatusBar style="light" />
               <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Main"         component={TabNavigator} />
-                <Stack.Screen name="MovieDetail"  component={MovieDetailScreen}
-                  options={{ animation: 'slide_from_right' }} />
-                <Stack.Screen name="SeriesDetail" component={SeriesDetailScreen}
-                  options={{ animation: 'slide_from_right' }} />
-                <Stack.Screen name="GamesScreen"  component={GamesScreen}
-                  options={{ animation: 'slide_from_right' }} />
-                <Stack.Screen name="Player"       component={PlayerScreen}
-                  options={{ animation: 'slide_from_bottom' }} />
-                <Stack.Screen name="GamePlayer"   component={GamePlayerScreen}
-                  options={{ animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="Main" component={TabNavigator} />
+                <Stack.Screen name="MovieDetail" component={MovieDetailScreen} options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="SeriesDetail" component={SeriesDetailScreen} options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="GamesScreen" component={GamesScreen} options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="Player" component={PlayerScreen} options={{ animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="GamePlayer" component={GamePlayerScreen} options={{ animation: 'slide_from_bottom' }} />
               </Stack.Navigator>
-            </NavigationContainer>
-          </RocketProvider>
+            </RocketProvider>
+          </NavigationContainer>
         </FavoritesProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -92,29 +93,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgHeader,
     borderTopWidth: 1,
     borderTopColor: colors.borderCard,
-    height: 62,
-    paddingBottom: 8,
-    paddingTop: 6,
     shadowColor: colors.neonGreen,
     shadowRadius: 12,
     shadowOpacity: 0.15,
     elevation: 20,
   },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  tabIconWrap: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  tabIconActive: {
-    backgroundColor: colors.neonGreenDim,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.neonGreen,
-    shadowRadius: 8,
-    shadowOpacity: 0.4,
-  },
+  tabLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  tabIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  tabIconActive: { backgroundColor: colors.neonGreenDim, borderWidth: 1, borderColor: colors.borderBright },
 });

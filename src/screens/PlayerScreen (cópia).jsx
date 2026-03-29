@@ -39,11 +39,10 @@ export default function PlayerScreen({ route, navigation }) {
   const MASK_RIGHT  = screenW * 0.45;  // % da largura
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // ─── Posição do botão voltar e contador ──────────────────────────────────────
-  const BTN_TOP  = screenH * 0.03;
-  const BTN_LEFT = screenW * 0.035;
-  const BTN_SIZE = 40;
-  // ─────────────────────────────────────────────────────────────────────────────
+  // Posição do botão voltar + header bar
+  const BTN_TOP  = screenH * 0.04;
+  const BTN_LEFT = screenW * 0.03;
+  const BTN_SIZE = 48;
 
   useEffect(() => {
     StatusBar.setHidden(true);
@@ -149,26 +148,29 @@ export default function PlayerScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* ── BOTÃO VOLTAR ── */}
+        {/* ── BOTÃO VOLTAR — flutua sobre tudo ── */}
         <TouchableOpacity
-          style={[styles.backBtn, {
-            top: BTN_TOP,
-            left: BTN_LEFT,
-            width: BTN_SIZE,
-            height: BTN_SIZE,
-            borderRadius: BTN_SIZE / 2,
-          }]}
+          style={[styles.backBtn, { top: BTN_TOP, left: BTN_LEFT, width: BTN_SIZE, height: BTN_SIZE, borderRadius: BTN_SIZE / 2 }]}
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
 
-        {/* ── CONTADOR Ep X/Y ── */}
+        {/* ── TÍTULO ao lado do botão voltar ── */}
+        <Text
+          style={[styles.epTitle, {
+            top: BTN_TOP + BTN_SIZE * 0.2,           // alinha verticalmente com o botão
+            left: BTN_LEFT + BTN_SIZE + 12,           // logo à direita do botão
+            right: screenW * 0.12,                    // não encostar no contador
+          }]}
+          numberOfLines={1}
+        >
+          {currentEpisode.title}
+        </Text>
+
+        {/* ── CONTADOR — canto superior direito ── */}
         {episodes.length > 1 && (
-          <Text style={[styles.epCount, {
-            top: BTN_TOP + BTN_SIZE * 0.25,
-            right: screenW * 0.03,
-          }]}>
+          <Text style={[styles.epCount, { top: BTN_TOP + BTN_SIZE * 0.25, right: screenW * 0.03 }]}>
             {index + 1}/{episodes.length}
           </Text>
         )}
@@ -233,11 +235,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 50,
     backgroundColor: colors.neonGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
 
-  // ── Contador ──────────────────────────────────────────────────────────────────
+  // ── Título e contador — flutuam sobre o mask topo ─────────────────────────────
+  epTitle: {
+    position: 'absolute',
+    zIndex: 50,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   epCount: {
     position: 'absolute',
     zIndex: 50,

@@ -21,13 +21,16 @@ function Stars({ count = 5 }) {
   );
 }
 
-function EpisodeCard({ episode, seriesTitle, navigation }) {
+function EpisodeCard({ episode, episodeIndex, allEpisodes, seriesTitle, navigation }) {
   return (
     <TouchableOpacity
       style={styles.epCard}
       onPress={() => navigation.navigate('Player', {
-        youtubeId: episode.youtubeId,
-        title: `${seriesTitle} — ${episode.title}`,
+        episodes: allEpisodes.map(ep => ({
+          youtubeId: ep.youtubeId,
+          title: `${seriesTitle} — ${ep.title}`,
+        })),
+        initialIndex: episodeIndex,
       })}
       activeOpacity={0.8}
     >
@@ -105,9 +108,11 @@ export default function SeriesDetailScreen({ route, navigation }) {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingLeft: spacing.md, paddingRight: 8 }}
-                renderItem={({ item }) => (
+                renderItem={({ item, index: epIndex }) => (
                   <EpisodeCard
                     episode={item}
+                    episodeIndex={epIndex}
+                    allEpisodes={season.episodes}
                     seriesTitle={series.title}
                     navigation={navigation}
                   />
