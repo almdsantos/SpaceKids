@@ -74,11 +74,11 @@ export default function App() {
               <StatusBar style="light" />
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Main" component={TabNavigator} />
-                <Stack.Screen name="MovieDetail" component={MovieDetailScreen} options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="MovieDetail"  component={MovieDetailScreen}  options={{ animation: 'slide_from_right' }} />
                 <Stack.Screen name="SeriesDetail" component={SeriesDetailScreen} options={{ animation: 'slide_from_right' }} />
-                <Stack.Screen name="GamesScreen" component={GamesScreen} options={{ animation: 'slide_from_right' }} />
-                <Stack.Screen name="Player" component={PlayerScreen} options={{ animation: 'slide_from_bottom' }} />
-                <Stack.Screen name="GamePlayer" component={GamePlayerScreen} options={{ animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="GamesScreen"  component={GamesScreen}        options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="Player"       component={PlayerScreen}       options={{ animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="GamePlayer"   component={GamePlayerScreen}   options={{ animation: 'slide_from_bottom' }} />
               </Stack.Navigator>
             </RocketProvider>
           </NavigationContainer>

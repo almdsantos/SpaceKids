@@ -1,55 +1,53 @@
+// src/hooks/useContent.js
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import {
+  collection, getDocs, onSnapshot,
+  query, where, orderBy,
+} from 'firebase/firestore';
 import { db } from '../data/firebase';
-import { MOCK_DATA, DATA_URL } from '../data/mock';
+import { MOCK_DATA } from '../data/mock';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Fonte de dados:
-// 1. Firebase Firestore (principal)
-// 2. JSON remoto (fallback)
-// 3. Mock local (fallback final)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const USE_REMOTE_JSON = false; // true = usa JSON remoto ao invés do Firebase
+const USE_FIREBASE = true; // false → usa mock local
 
 export function useContent() {
-  const [data, setData] = useState(null);
+  const [data, setData]       = useState(null);
+  const [lives, setLives]     = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
-  useEffect(() => { loadContent(); }, []);
+  // ─── Carrega séries, filmes e jogos (uma vez) ─────────────────────────────
+  useEffect(() => {
+    if (!USE_FIREBASE) {
+      setData(MOCK_DATA);
+      setLoading(false);
+      return;
+    }
+    loadContent();
+  }, []);
+
+  // ─── Listener em tempo real para lives ───────────────────────────────────
+  // Usa onSnapshot → app atualiza sozinho quando Firebase muda isLive
+  useEffect(() => {
+    if (!USE_FIREBASE) return;
+
+    const q = query(collection(db, 'lives'), orderBy('order', 'asc'));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const livesList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setLives(livesList);
+      },
+      (err) => {
+        console.warn('[useContent] Erro ao ouvir lives:', err.message);
+      }
+    );
+
+    return () => unsub();
+  }, []);
 
   async function loadContent() {
     setLoading(true);
     setError(null);
-    try {
-      if (USE_REMOTE_JSON) {
-        // Fonte 2: JSON remoto
-        const response = await fetch(DATA_URL, { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const json = await response.json();
-        setData(json);
-      } else {
-        // Fonte 1: Firebase Firestore
-        const result = await loadFromFirebase();
-        if (result) {
-          setData(result);
-        } else {
-          // Fonte 3: Mock local como fallback
-          console.warn('Firebase vazio — usando dados mockados');
-          setData(MOCK_DATA);
-        }
-      }
-    } catch (err) {
-      console.warn('Erro ao carregar dados:', err.message, '— usando mock local');
-      setError(err.message);
-      setData(MOCK_DATA);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadFromFirebase() {
     try {
       const [seriesSnap, moviesSnap, gamesSnap] = await Promise.all([
         getDocs(collection(db, 'series')),
@@ -57,36 +55,53 @@ export function useContent() {
         getDocs(collection(db, 'games')),
       ]);
 
-      const series = seriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const movies = moviesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const gamesDocs = gamesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const series = seriesSnap.docs.map(d => d.data());
+      const movies = moviesSnap.docs.map(d => d.data());
+      const gamesAll = gamesSnap.docs.map(d => d.data());
 
-      // Se todas as coleções estiverem vazias, retorna null para usar o mock
-      if (!series.length && !movies.length && !gamesDocs.length) return null;
-
-      // Organiza os jogos por categoria
-      const featured = gamesDocs.find(g => g.featured) || null;
-      const educational = gamesDocs.filter(g => g.category === 'Educacional');
-      const puzzle = gamesDocs.filter(g => g.category === 'Puzzle');
-      const arcade = gamesDocs.filter(g => g.category === 'Arcade');
-
-      return {
-        series,
-        movies,
-        games: { featured, educational, puzzle, arcade },
+      // Reconstrói estrutura de jogos igual ao mock
+      const games = {
+        featured:    gamesAll.find(g => g.featured) || null,
+        arcade:      gamesAll.filter(g => g.category === 'Arcade'      && !g.featured),
+        educational: gamesAll.filter(g => g.category === 'Educacional' && !g.featured),
+        puzzle:      gamesAll.filter(g => g.category === 'Puzzle'      && !g.featured),
       };
+
+      setData({ series, movies, games });
     } catch (err) {
-      console.warn('Erro no Firebase:', err.message);
-      return null;
+      console.error('[useContent] Erro:', err.message);
+      setError(err.message);
+      // Fallback para mock
+      setData(MOCK_DATA);
+    } finally {
+      setLoading(false);
     }
   }
 
+  // ─── Itens para o Hero Banner ─────────────────────────────────────────────
   function getHeroItems(count = 3) {
     if (!data) return [];
-    const all = [...(data.movies || []), ...(data.series || [])];
-    const shuffled = all.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    const all = [
+      ...(data.series || []),
+      ...(data.movies || []),
+    ];
+    return all.slice(0, count);
   }
 
-  return { data, loading, error, reload: loadContent, getHeroItems };
+  // ─── Lives ativas (isLive = true) ─────────────────────────────────────────
+  const activeLives    = lives.filter(l => l.isLive);
+  const upcomingLives  = lives.filter(l => l.isUpcoming && !l.isLive);
+  const hasLive        = activeLives.length > 0;
+
+  return {
+    data,
+    lives,
+    activeLives,
+    upcomingLives,
+    hasLive,
+    loading,
+    error,
+    reload: loadContent,
+    getHeroItems,
+  };
 }
