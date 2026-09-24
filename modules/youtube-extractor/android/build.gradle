@@ -1,0 +1,48 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+
+group = 'expo.modules.youtubeextractor'
+version = '1.0.0'
+
+android {
+  compileSdk 36  
+
+  namespace "expo.modules.youtubeextractor"
+
+  defaultConfig {
+    minSdk 24
+    versionCode 1
+    versionName "1.0.0"
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+// NewPipe Extractor é distribuído apenas via JitPack.
+// Se o projeto raiz já usa dependencyResolutionManagement com FAIL_ON_PROJECT_REPOS
+// (ver android/settings.gradle), mova este bloco "repositories" para lá em vez daqui
+// (dentro de dependencyResolutionManagement { repositories { ... } }).
+repositories {
+  maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+  // Necessário para usar Module, ModuleDefinition, AsyncFunction e Promise
+  implementation project(':expo-modules-core')  
+
+  // NewPipe Extractor — GPL-3.0-or-later (ver aviso de licença no README do projeto).
+  implementation 'com.github.teamnewpipe:NewPipeExtractor:v0.26.5'
+
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+
+  // NewPipe Extractor usa java.time / streams em vários pontos; com minSdk < 33
+  // é necessário core library desugaring no módulo :app (ver AGENTS_INTEGRACAO.md).
+  coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.3'
+}

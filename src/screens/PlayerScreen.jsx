@@ -12,10 +12,11 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import YoutubeIframe from 'react-native-youtube-iframe';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { colors } from '../theme';
+import { getStreamUrl } from '../../modules/youtube-extractor';
 
 function useScreenDimensions() {
   const [dims, setDims] = useState(Dimensions.get('window'));
@@ -39,11 +40,12 @@ export default function PlayerScreen({ route, navigation }) {
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekRatio, setSeekRatio] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [streamError, setStreamError] = useState(null);
 
-  const playerRef = useRef(null);
   const trackWidth = useRef(200);
   const hideTimer = useRef(null);
   const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const isSeekingRef = useRef(isSeeking);
 
   const currentEpisode = episodes[index];
 
@@ -60,6 +62,14 @@ export default function PlayerScreen({ route, navigation }) {
   const BTN_TOP = screenH * 0.03;
   const BTN_LEFT = screenW * 0.035;
   const BTN_SIZE = 40;
+
+  // Player nativo (expo-video). A fonte é definida dinamicamente após a
+  // extração da URL direta via módulo youtube-extractor (NewPipe).
+  const player = useVideoPlayer(null, (p) => {
+    p.loop = false;
+    // Habilita eventos periódicos de tempo (contador/barra de progresso)
+    p.timeUpdateEventInterval = 0.5;
+  });
 
   useEffect(() => {
     StatusBar.setHidden(true);
@@ -82,12 +92,32 @@ export default function PlayerScreen({ route, navigation }) {
     };
   }, []);
 
+  // Sempre que o episódio muda: reseta o estado e extrai + carrega a nova URL direta
   useEffect(() => {
+    let cancelled = false;
+
     setReady(false);
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
     setSeekRatio(0);
+    setStreamError(null);
+
+    (async () => {
+      try {
+        const { url } = await getStreamUrl(currentEpisode.youtubeId);
+        if (cancelled) return;
+
+        await player.replaceAsync(url);
+        player.play();
+      } catch (err) {
+        if (!cancelled) setStreamError('Não foi possível carregar o vídeo.');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [index]);
 
   const startHideTimer = useCallback(() => {
@@ -125,26 +155,8 @@ export default function PlayerScreen({ route, navigation }) {
   }, [ready, playing, startHideTimer]);
 
   useEffect(() => {
-    if (!ready || !playing || isSeeking) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const t = await playerRef.current?.getCurrentTime();
-        const d = await playerRef.current?.getDuration();
-
-        if (t != null) setCurrentTime(t);
-        if (d != null && d > 0) setDuration(d);
-      } catch (_) {}
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [ready, playing, isSeeking]);
-
-  function onReady() {
-    setReady(true);
-    setPlaying(true);
-    showControlsNow();
-  }
+    isSeekingRef.current = isSeeking;
+  }, [isSeeking]);
 
   function goNext() {
     if (index < episodes.length - 1) {
@@ -158,17 +170,53 @@ export default function PlayerScreen({ route, navigation }) {
     if (index > 0) setIndex(index - 1);
   }
 
-  async function skip(seconds) {
+  const goNextRef = useRef(goNext);
+  useEffect(() => {
+    goNextRef.current = goNext;
+  });
+
+  // Assina os eventos do player nativo (substitui o polling usado com o iframe)
+  useEffect(() => {
+    const subStatus = player.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay') {
+        setReady(true);
+        setPlaying(true);
+        if (player.duration) setDuration(player.duration);
+        showControlsNow();
+      }
+    });
+
+    const subTime = player.addListener('timeUpdate', ({ currentTime: t }) => {
+      if (isSeekingRef.current) return;
+      setCurrentTime(t);
+      if (player.duration) setDuration(player.duration);
+    });
+
+    const subPlaying = player.addListener('playingChange', ({ isPlaying }) => {
+      setPlaying(isPlaying);
+    });
+
+    const subEnd = player.addListener('playToEnd', () => {
+      goNextRef.current();
+    });
+
+    return () => {
+      subStatus.remove();
+      subTime.remove();
+      subPlaying.remove();
+      subEnd.remove();
+    };
+  }, [player, showControlsNow]);
+
+  function skip(seconds) {
     showControlsNow();
 
-    try {
-      const t = await playerRef.current?.getCurrentTime();
-      const d = await playerRef.current?.getDuration();
-      const next = Math.max(0, Math.min((t || 0) + seconds, d || 99999));
+    const t = player.currentTime || 0;
+    const d = player.duration || 0;
+    const next = Math.max(0, Math.min(t + seconds, d || t + seconds));
 
-      playerRef.current?.seekTo(next, true);
-      setCurrentTime(next);
-    } catch (_) {}
+    player.currentTime = next;
+    setCurrentTime(next);
   }
 
   const panResponder = useRef(
@@ -197,7 +245,7 @@ export default function PlayerScreen({ route, navigation }) {
         setSeekRatio(ratio);
       },
 
-      onPanResponderRelease: async (evt) => {
+      onPanResponderRelease: (evt) => {
         const ratio = Math.max(
           0,
           Math.min(evt.nativeEvent.locationX / trackWidth.current, 1)
@@ -206,13 +254,11 @@ export default function PlayerScreen({ route, navigation }) {
         setIsSeeking(false);
         setSeekRatio(ratio);
 
-        try {
-          const d = await playerRef.current?.getDuration();
-          const target = ratio * (d || 0);
+        const d = player.duration || 0;
+        const target = ratio * d;
 
-          playerRef.current?.seekTo(target, true);
-          setCurrentTime(target);
-        } catch (_) {}
+        player.currentTime = target;
+        setCurrentTime(target);
 
         startHideTimer();
       },
@@ -234,48 +280,12 @@ export default function PlayerScreen({ route, navigation }) {
       <View style={[styles.container, { width: screenW, height: screenH }]}>
         {/* PLAYER */}
         <View style={[styles.playerContainer, { width: screenW, height: screenH }]}>
-          <YoutubeIframe
-            key={currentEpisode.youtubeId}
-            ref={playerRef}
-            height={screenH}
-            width={screenW}
-            videoId={currentEpisode.youtubeId}
-            play={playing}
-            forceAndroidAutoplay={true}
-            onReady={onReady}
-            onChangeState={(state) => {
-              if (state === 'ended') goNext();
-              if (state === 'playing') setPlaying(true);
-              if (state === 'paused') setPlaying(false);
-            }}
-            initialPlayerParams={{
-              modestbranding: 1,
-              rel: 0,
-              controls: 1,
-              showinfo: 0,
-              iv_load_policy: 3,
-              cc_load_policy: 0,
-              preventFullScreen: false,
-              autoplay: 1,
-            }}
-            webViewStyle={{
-              backgroundColor: '#000',
-              width: screenW,
-              height: screenH,
-            }}
-            webViewProps={{
-              allowsFullscreenVideo: true,
-              mediaPlaybackRequiresUserAction: false,
-              allowsInlineMediaPlayback: false,
-              scrollEnabled: false,
-              bounces: false,
-              overScrollMode: 'never',
-              style: {
-                width: screenW,
-                height: screenH,
-                backgroundColor: '#000',
-              },
-            }}
+          <VideoView
+            style={{ width: screenW, height: screenH, backgroundColor: '#000' }}
+            player={player}
+            contentFit="contain"
+            allowsFullscreen={false}
+            allowsPictureInPicture={false}
           />
         </View>
 
@@ -402,11 +412,13 @@ export default function PlayerScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* LOADING */}
+        {/* LOADING / ERRO */}
         {!ready && (
           <View style={[styles.loadingOverlay, { width: screenW, height: screenH }]}>
             <ActivityIndicator size="large" color={colors.neonGreen} />
-            <Text style={styles.loadingText}>🚀 Preparando...</Text>
+            <Text style={styles.loadingText}>
+              {streamError ? `⚠️ ${streamError}` : '🚀 Preparando...'}
+            </Text>
           </View>
         )}
       </View>

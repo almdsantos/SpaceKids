@@ -31,7 +31,10 @@
       "assets/*"
     ],
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-video",
+      "./plugins/withJitpackRepository",
+      "expo-font"
     ],
     "extra": {
       "eas": {
