@@ -1,6 +1,6 @@
 <lint-module
     format="1"
-    dir="/home/aliston/spacekids/modules/youtube-extractor/android"
+    dir="/home/aliston/Backup/SpaceKids/modules/youtube-extractor/android"
     name=":youtube-extractor"
     type="LIBRARY"
     maven="expo.modules.youtubeextractor:youtube-extractor:1.0.0"
