@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.neonGreen },
   grid: { padding: spacing.md },
   row: { gap: 10, marginBottom: 10 },
-  gridCard: { flex: 1, width: undefined, marginRight: 0 },
+  gridCard: { flex: 1, width: 130, marginRight: 0 },
   empty: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     gap: 10, paddingHorizontal: spacing.lg,

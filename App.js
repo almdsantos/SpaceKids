@@ -100,5 +100,5 @@ const styles = StyleSheet.create({
   },
   tabLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   tabIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  tabIconActive: { backgroundColor: colors.neonGreenDim, borderWidth: 1, borderColor: colors.borderBright },
+  tabIconActive: { },
 });

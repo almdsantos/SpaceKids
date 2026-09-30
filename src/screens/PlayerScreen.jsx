@@ -321,6 +321,27 @@ export default function PlayerScreen({ route, navigation }) {
                   <Text style={styles.skipLabel}>10s</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={styles.playPauseBtn}
+                  onPress={() => {
+                    showControlsNow();
+                    const p = playerRef.current;
+                    if (!p) return;
+                    if (playing) {
+                      p.pause();
+                    } else {
+                      p.play();
+                    }
+                  }}
+                >
+                  <Ionicons
+                    name={playing ? 'pause' : 'play'}
+                    size={18}
+                    color="#fff"
+                    style={{ marginLeft: playing ? 0 : 2 }}
+                  />
+                </TouchableOpacity>
+
                 <View style={styles.progressWrap}>
                   <Text style={styles.timeText}>
                     {formatTime(isSeeking ? seekRatio * duration : currentTime)}
@@ -427,16 +448,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4, minWidth: 42, zIndex: 50,
   },
   skipLabel: { color: '#fff', fontSize: 9, fontWeight: '600', marginTop: -2 },
+  playPauseBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(0,255,136,0.18)',
+    borderWidth: 1.2, borderColor: 'rgba(0,255,136,0.45)',
+    zIndex: 50,
+  },
   progressWrap: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    gap: 6, marginHorizontal: 4, transform: [{ translateY: -8 }],
+    gap: 6, marginHorizontal: 4, minWidth: 120,
   },
   timeText: {
     color: '#fff', fontSize: 10, fontWeight: '600',
     minWidth: 36, textAlign: 'center',
   },
   track: {
-    width: '100%', height: 3,
+    flex: 1, height: 3,
     backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 999, justifyContent: 'center',
   },
