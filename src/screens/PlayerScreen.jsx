@@ -75,6 +75,7 @@ function VideoCore({ videoUrl, screenW, screenH, onReady, onTimeUpdate, onPlayin
       style={{ width: screenW, height: screenH, backgroundColor: '#000' }}
       player={player}
       contentFit="contain"
+      nativeControls={false}
       allowsFullscreen={false}
       allowsPictureInPicture={false}
     />
